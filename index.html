@@ -35,6 +35,8 @@ function applyTheme(id){
   const m=document.querySelector('meta[name="theme-color"]'); if(m) m.content=bg;
 }
 applyTheme(localStorage.getItem('recomp-theme')||'auto');
+function applyZoom(z){ document.documentElement.style.zoom=(z&&z!==1)?String(z):''; }
+applyZoom(parseFloat(localStorage.getItem('recomp-zoom'))||1);
 </script>
 
 <style>
@@ -219,6 +221,40 @@ textarea{width:100%;min-height:64px;resize:vertical}
 #toast{position:fixed;bottom:86px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);
   font-family:var(--mono);font-size:12.5px;padding:9px 16px;border-radius:999px;opacity:0;transition:.3s;pointer-events:none;z-index:50}
 #toast.show{opacity:1}
+/* v10.2: date bar, bubble, AI tab */
+body{padding-bottom:96px}
+.datewrap{margin-top:2px}
+.datebtn{display:flex;align-items:center;gap:8px;width:100%;padding:7px 12px;border-radius:11px;border:1px solid var(--line);
+  background:var(--card);color:var(--ink);font-family:var(--mono);font-size:13.5px;text-align:left}
+.datebtn b{font-weight:500}
+.datebtn #daterel{color:var(--muted);flex:1}
+.datebtn.away b,.datebtn.away #daterel{color:var(--accent)}
+.datebtn .chev{color:var(--muted);transition:transform .2s}
+.datebtn[aria-expanded="true"] .chev{transform:rotate(180deg)}
+#datepanel{padding:8px 0 2px}
+#fab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:65;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+body[data-pane="ai"] #fab{display:none}
+#fabbtn{width:56px;height:56px;border-radius:50%;border:none;background:var(--accent);color:var(--on-accent);font-size:30px;line-height:1;
+  box-shadow:0 6px 18px -6px #000A;transition:transform .2s}
+#fabbtn[aria-expanded="true"]{transform:rotate(45deg)}
+#fabmenu{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+#fabmenu[hidden]{display:none}
+.fabitem{display:flex;align-items:center;gap:8px;padding:9px 14px;border-radius:999px;border:1px solid var(--line);
+  background:var(--raised);color:var(--ink);font-size:14px;font-weight:600;box-shadow:var(--shadow);white-space:nowrap}
+.fabweight{width:220px;padding:8px;border-radius:14px;background:var(--raised);border:1px solid var(--line);box-shadow:var(--shadow)}
+#fabscrim{position:fixed;inset:0;background:#0005;z-index:64}
+#fabscrim[hidden]{display:none}
+@media (prefers-reduced-motion: reduce){#fabbtn,.datebtn .chev{transition:none}}
+.aicard #flthread{display:flex;min-height:180px;max-height:58vh}
+.flempty{color:var(--muted);font-size:13px;padding:10px 4px}
+.flquick{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;scrollbar-width:none}
+.flquick .flchip{white-space:nowrap;font-size:12.5px;padding:6px 11px}
+.flstat{align-self:stretch;border:1px solid var(--line);border-radius:12px;background:var(--raised);padding:9px 10px}
+.flstat .row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.flstat .lab{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+.flstat .lab b{color:var(--ink);font-weight:500}
+.flstat .big{font-family:var(--mono);font-size:13px;margin-bottom:6px}
+#toast{bottom:calc(88px + env(safe-area-inset-bottom,0px))}
 /* v10.1: settings */
 header{position:relative}
 #gosettings{position:absolute;top:14px;right:16px;margin:0;padding:8px 11px;font-size:17px;line-height:1}
@@ -271,7 +307,23 @@ header{position:relative}
 
 <header>
   <button class="slot" id="gosettings" aria-label="Settings" title="Settings">⚙️</button>
-  <div class="brand"><h1>Day<span class="em">.</span>Logger</h1><span class="sub">Recomp OS v10.1 · source · refine · conquer</span></div>
+  <div class="brand"><h1>Day<span class="em">.</span>Logger</h1><span class="sub">Recomp OS v10.2 · source · refine · conquer</span></div>
+</header>
+
+<nav class="navtabs" id="navtabs" aria-label="Sections">
+  <button class="navtab on" data-pane="home"><span>🏠</span>Home</button>
+  <button class="navtab" data-pane="fuel"><span>🍽️</span>Fuel</button>
+  <button class="navtab" data-pane="library"><span>📚</span>Foods</button>
+  <button class="navtab" data-pane="train"><span>💪</span>Train</button>
+  <button class="navtab" data-pane="ai"><span>✨</span>AI</button>
+  <button class="navtab" data-pane="week"><span>📅</span>Week</button>
+</nav>
+
+<div class="remain datewrap">
+  <button class="datebtn" id="datetoggle" aria-expanded="false" aria-controls="datepanel">
+    <span aria-hidden="true">📅</span><b id="datelab"></b><span id="daterel"></span><span class="chev" aria-hidden="true">⌄</span>
+  </button>
+  <div id="datepanel" hidden>
   <div class="weekstrip" id="weekstrip" style="display:flex;gap:3px;margin:2px 0 4px"></div>
   <div class="daterow">
     <input type="date" id="date">
@@ -280,16 +332,8 @@ header{position:relative}
     <button class="slot" id="weeknextbtn" style="margin:0;padding:4px 10px;font-size:14px">›</button>
     <button class="slot" id="clearday" title="Clear this day">reset day</button>
   </div>
-</header>
-
-<nav class="navtabs" id="navtabs" aria-label="Sections">
-  <button class="navtab on" data-pane="home"><span>🏠</span>Home</button>
-  <button class="navtab" data-pane="fuel"><span>🍽️</span>Fuel</button>
-  <button class="navtab" data-pane="library"><span>📚</span>Foods</button>
-  <button class="navtab" data-pane="train"><span>💪</span>Train</button>
-  <button class="navtab" data-pane="ai"><span>🤖</span>Assist</button>
-  <button class="navtab" data-pane="week"><span>📅</span>Week</button>
-</nav>
+  </div>
+</div>
 
 <div class="remain" id="macropanel"><div class="rcard" style="cursor:pointer">
   <div class="rrow"><span class="big" id="sumkcal">0 <small>kcal in</small></span><span class="big" id="remkcal" style="color:var(--accent)">2150 <small>left</small></span></div>
@@ -313,21 +357,6 @@ header{position:relative}
 <main>
 <section class="pane on" id="home">
   <div class="card">
-    <h3>Quick actions</h3>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">
-      <button class="addbtn" id="qa-weight" style="margin:0;padding:14px">⚖️ Log weight</button>
-      <button class="addbtn" id="qa-meal" style="margin:0;padding:14px">🍽️ Log meal</button>
-      <button class="slot" id="qa-ai" style="margin:0;padding:14px">✨ Describe a meal</button>
-      <button class="slot" id="qa-train" style="margin:0;padding:14px">💪 Train</button>
-    </div>
-    <div id="qa-weightrow" style="display:none;margin-top:10px;gap:6px">
-      <input id="qa-weightin" placeholder="lb" inputmode="decimal" style="flex:1">
-      <button class="addbtn" id="qa-weightsave" style="margin:0">Save</button>
-    </div>
-    <p class="hint" id="weighthint" style="margin-top:8px"></p>
-  </div>
-
-  <div class="card">
     <h3>Log a meal</h3>
     <div style="display:flex;gap:6px;margin-bottom:8px">
       <input id="histsearch" placeholder="🔍 Type any food…" style="flex:1;box-sizing:border-box">
@@ -335,12 +364,13 @@ header{position:relative}
     </div>
     <button class="slot" id="histtoggle" style="margin:0 0 8px;width:100%">⌄ show all</button>
     <div class="units" id="histresults"></div>
-    <p class="hint" style="margin-top:6px">Searches your library and everything you've ever logged. Tap to add — the meal slot is set from the clock. ✨ sends you to the AI logger for anything new.</p>
+    <p class="hint" style="margin-top:6px">Searches your library and everything you've ever logged. Tap to add — the meal slot is set from the clock. ✨ sends it to the AI tab for anything new.</p>
   </div>
 
   <div class="card">
     <h3>Today at a glance</h3>
     <div id="homeglance" style="font-family:var(--mono);font-size:.9em;line-height:1.7"></div>
+    <p class="hint" id="weighthint" style="margin:6px 0 0"></p>
   </div>
 </section>
 
@@ -402,23 +432,65 @@ header{position:relative}
 </section>
 
 <section class="pane" id="ai">
-  <div class="card">
-    <h3 style="display:flex;justify-content:space-between;align-items:center">Assistant <button class="slot" id="dayreview" style="margin:0">🧾 day review</button></h3>
-    <div id="chatlog" style="display:flex;flex-direction:column;gap:8px;min-height:120px;max-height:45vh;overflow-y:auto;margin-bottom:10px"></div>
-    <div style="display:flex;gap:8px">
-      <input id="chatin" placeholder="Ask about your day, food, training…" style="flex:1">
-      <button class="addbtn" id="micbtn" hidden>🎤</button>
-      <button class="addbtn" id="chatsend">➤</button>
-    </div>
-    <p class="hint" style="margin-top:6px">The assistant sees today's full log, your targets, and your last 7 days. Chat clears when you close the app.</p>
+<div class="card aicard" id="ailoggerCard">
+  <div style="display:flex;gap:6px;margin-bottom:8px" id="aimode">
+    <button class="slot on" data-aimode="food" style="flex:1;margin:0;padding:6px 8px">💬 Chat</button>
+    <button class="slot" data-aimode="workout" style="flex:1;margin:0;padding:6px 8px">💪 Workout</button>
+    <button class="slot" data-aimode="run" style="flex:1;margin:0;padding:6px 8px">🏃 Run</button>
   </div>
-  <button class="slot" onclick="document.getElementById('gosettings').click()" style="margin:0;width:100%;padding:11px">⚙️ AI keys, model, voice and “about you” are in Settings</button>
+  <div id="aimode-food">
+    <div id="flhead"><span style="flex:1">Logging to <b id="fldate"></b></span><button class="slot" id="flnew" style="margin:0;padding:4px 10px">＋ New thread</button></div>
+    <div id="flthread" aria-live="polite"></div>
+    <div class="flquick" id="flquick">
+      <button class="flchip" data-quick="status">📊 Macros now</button>
+      <button class="flchip" data-quick="review">🧾 Review today</button>
+      <button class="flchip" data-quick="fav">⭐ My favorites</button>
+      <button class="flchip" data-quick="lastdinner">🍽️ Last night's dinner</button>
+    </div>
+    <textarea id="aidesc" placeholder="Ask about your log, or tell me what you ate. &quot;What were the macros on dinner last night? Having that again for breakfast.&quot;" style="min-height:52px"></textarea>
+    <div id="aisuggest" style="display:none;margin-top:6px;max-height:180px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;background:var(--card)"></div>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="addbtn" id="scanbtn" style="white-space:nowrap">📷 Scan</button>
+      <button class="addbtn" id="aidescmic" hidden>🎤</button>
+      <button class="addbtn" id="aidescgo" style="flex:1">✨ Send</button>
+    </div>
+    <div id="aipreview" style="display:none;border:1px solid var(--accent);border-radius:12px;padding:10px;background:var(--accent-soft);margin-top:8px"></div>
+  </div>
+  <div id="aimode-workout" style="display:none">
+    <textarea id="cwdesc" placeholder="✨ Describe it — &quot;45 min treadmill alternating 4mph walk and 7mph sprint&quot; or &quot;20 min jump rope then 3x15 kettlebell swings at 35lb&quot;" style="min-height:60px"></textarea>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="addbtn" id="cwmic" hidden>🎤</button>
+      <button class="addbtn" id="cwgo" style="flex:1">✨ Log workout</button>
+    </div>
+    <div id="cwpreview" style="display:none;border:1px solid var(--accent);border-radius:12px;padding:10px;background:var(--accent-soft);margin-top:8px"></div>
+  </div>
+  <div id="aimode-run" style="display:none">
+    <textarea id="rundesc" placeholder="✨ &quot;Ran outside for 35 min, 20lb vest, mostly 8min/mile pace&quot; or &quot;treadmill 25 min, 6mph, no vest&quot;" style="min-height:60px"></textarea>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="addbtn" id="runmic" hidden>🎤</button>
+      <button class="addbtn" id="rungo" style="flex:1">✨ Log run</button>
+    </div>
+    <div id="runpreview" style="display:none;border:1px solid var(--accent);border-radius:12px;padding:10px;background:var(--accent-soft);margin-top:8px"></div>
+  </div>
+</div>
+
 </section>
 <section class="pane" id="settings">
   <h2 style="font-size:26px;font-weight:700;margin:2px 2px 12px">Settings</h2>
   <div class="card">
     <h3>Theme</h3>
     <div class="themes" id="themegrid"></div>
+  </div>
+
+  <div class="card">
+    <h3>Display size</h3>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="slot" id="zoomdown" style="margin:0;padding:6px 13px;font-size:16px" aria-label="Smaller">−</button>
+      <input type="range" id="zoomrange" min="70" max="130" step="5" style="flex:1;accent-color:var(--accent)">
+      <button class="slot" id="zoomup" style="margin:0;padding:6px 13px;font-size:16px" aria-label="Larger">+</button>
+      <b id="zoomval" style="font-family:var(--mono);font-weight:500;min-width:44px;text-align:right"></b>
+    </div>
+    <p class="hint" style="margin:6px 0 0">Shrinks or enlarges everything in the app — buttons, text and spacing. <button class="slot" id="zoomreset" style="margin:0 0 0 4px;padding:2px 9px">100%</button></p>
   </div>
 
   <div class="card">
@@ -487,43 +559,6 @@ header{position:relative}
 </section>
 </main>
 
-<div class="ailogger-wrap">
-<div class="card" id="ailoggerCard">
-  <div style="display:flex;gap:6px;margin-bottom:8px" id="aimode">
-    <button class="slot on" data-aimode="food" style="flex:1;margin:0">🍎 Food</button>
-    <button class="slot" data-aimode="workout" style="flex:1;margin:0">💪 Workout</button>
-    <button class="slot" data-aimode="run" style="flex:1;margin:0">🏃 Run</button>
-  </div>
-  <div id="aimode-food">
-    <div id="flhead"><span style="flex:1">Logging to <b id="fldate"></b></span><button class="slot" id="flnew" style="margin:0;padding:4px 10px" hidden>New chat</button></div>
-    <div id="flthread" aria-live="polite"></div>
-    <textarea id="aidesc" placeholder="✨ Tell me what you ate — I'll ask what I need, then log it. Speak or type." style="min-height:60px"></textarea>
-    <div id="aisuggest" style="display:none;margin-top:6px;max-height:180px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;background:var(--card)"></div>
-    <div style="display:flex;gap:8px;margin-top:6px">
-      <button class="addbtn" id="scanbtn" style="white-space:nowrap">📷 Scan</button>
-      <button class="addbtn" id="aidescmic" hidden>🎤</button>
-      <button class="addbtn" id="aidescgo" style="flex:1">✨ Send</button>
-    </div>
-    <div id="aipreview" style="display:none;border:1px solid var(--accent);border-radius:12px;padding:10px;background:var(--accent-soft);margin-top:8px"></div>
-  </div>
-  <div id="aimode-workout" style="display:none">
-    <textarea id="cwdesc" placeholder="✨ Describe it — &quot;45 min treadmill alternating 4mph walk and 7mph sprint&quot; or &quot;20 min jump rope then 3x15 kettlebell swings at 35lb&quot;" style="min-height:60px"></textarea>
-    <div style="display:flex;gap:8px;margin-top:6px">
-      <button class="addbtn" id="cwmic" hidden>🎤</button>
-      <button class="addbtn" id="cwgo" style="flex:1">✨ Log workout</button>
-    </div>
-    <div id="cwpreview" style="display:none;border:1px solid var(--accent);border-radius:12px;padding:10px;background:var(--accent-soft);margin-top:8px"></div>
-  </div>
-  <div id="aimode-run" style="display:none">
-    <textarea id="rundesc" placeholder="✨ &quot;Ran outside for 35 min, 20lb vest, mostly 8min/mile pace&quot; or &quot;treadmill 25 min, 6mph, no vest&quot;" style="min-height:60px"></textarea>
-    <div style="display:flex;gap:8px;margin-top:6px">
-      <button class="addbtn" id="runmic" hidden>🎤</button>
-      <button class="addbtn" id="rungo" style="flex:1">✨ Log run</button>
-    </div>
-    <div id="runpreview" style="display:none;border:1px solid var(--accent);border-radius:12px;padding:10px;background:var(--accent-soft);margin-top:8px"></div>
-  </div>
-</div>
-</div>
 
 
 <div id="scanmodal" style="display:none;position:fixed;inset:0;background:#000;z-index:60;flex-direction:column;align-items:center;justify-content:center">
@@ -532,8 +567,24 @@ header{position:relative}
   <button class="addbtn" id="scanclose" style="min-width:120px">Close</button>
 </div>
 
-<div class="exportbar" style="flex-wrap:wrap">
-  <button class="primary" id="gologger">✨ Log food</button>
+<div id="fabscrim" hidden></div>
+<div id="fab">
+  <div id="fabmenu" hidden>
+    <div id="qa-weightrow" style="display:none;gap:6px" class="fabweight">
+      <input id="qa-weightin" placeholder="lb" inputmode="decimal" style="flex:1;min-width:0;font-family:var(--mono)">
+      <button class="addbtn" id="qa-weightsave" style="margin:0">Save</button>
+    </div>
+    <button class="fabitem" id="qa-ai"><span>✨</span>Ask AI · log food</button>
+    <button class="fabitem" id="qa-weight"><span>⚖️</span>Log weight</button>
+    <button class="fabitem" id="qa-meal"><span>🔍</span>Find a food</button>
+    <button class="fabitem" id="qa-train"><span>💪</span>Train</button>
+    <button class="fabitem" id="fab-paste"><span>📋</span>Paste JSON</button>
+    <button class="fabitem" id="fab-save"><span>💾</span>Save backup</button>
+  </div>
+  <button id="fabbtn" aria-expanded="false" aria-label="Quick actions">+</button>
+</div>
+<div class="exportbar" style="display:none">
+  <button id="gologger">✨</button>
   <button id="pastejson">📋 Paste</button>
   <button id="download">💾 Save</button>
   <button id="import">📥 Import</button>
@@ -1192,9 +1243,9 @@ async function askAI(userText){
     wait.innerHTML=mdToHtml(out); CHAT.push({role:'assistant',content:out}); speak(out);
   }catch(e){ wait.textContent=e.message==='nokey'?'Add your OpenRouter key in ⚙️ below.':'Call failed — signal? key? ('+e.message+')'; }
 }
-document.getElementById('chatsend').onclick=()=>{ const i=document.getElementById('chatin'); const t=i.value.trim(); if(!t) return; i.value=''; askAI(t); };
-document.getElementById('chatin').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('chatsend').click(); });
-document.getElementById('dayreview').onclick=()=>{ document.querySelector('[data-pane="ai"]').click(); askAI('Give me the coach read on today: 2-3 sentences. Protein verdict, training verdict, the one thing to do before bed or tomorrow.'); };
+if(0)document.getElementById('chatsend').onclick=()=>{ const i=document.getElementById('chatin'); const t=i.value.trim(); if(!t) return; i.value=''; askAI(t); };
+if(0)document.getElementById('chatin').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('chatsend').click(); });
+if(0)document.getElementById('dayreview').onclick=()=>{ document.querySelector('[data-pane="ai"]').click(); askAI('Give me the coach read on today: 2-3 sentences. Protein verdict, training verdict, the one thing to do before bed or tomorrow.'); };
 
 // ---------- pending meal resolver ----------
 document.addEventListener('click',async e=>{
@@ -1214,7 +1265,7 @@ document.addEventListener('click',async e=>{
 // ---------- voice in (Web Speech) ----------
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 if(SR){
-  const mic=document.getElementById('micbtn'); mic.hidden=false;
+  const mic=document.getElementById('micbtn'); if(mic){ mic.hidden=false;
   let rec=null;
   mic.onclick=()=>{
     if(rec){ rec.stop(); return; }
@@ -1225,7 +1276,7 @@ if(SR){
     rec.onend=()=>{ mic.textContent='🎤'; rec=null; if(inp.value.trim()) document.getElementById('chatsend').click(); };
     rec.onerror=()=>{ mic.textContent='🎤'; rec=null; };
     rec.start();
-  };
+  }; }
 }
 
 // ---------- voice out (ElevenLabs) ----------
@@ -1858,6 +1909,7 @@ renderAll=function(){ _renderAll(); renderWeekStrip(); renderWeekTable(); render
     document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id===id));
     document.querySelectorAll('.navtab').forEach(b=>{ const on=b.dataset.pane===id; b.classList.toggle('on',on); b.setAttribute('aria-current',on?'page':'false'); });
     const g=document.getElementById('gosettings'); if(g) g.classList.toggle('on',id==='settings');
+    document.body.dataset.pane=id;
     try{ sessionStorage.setItem('recomp-pane',id); }catch(e){}
     window.scrollTo(0,0);
   };
@@ -1877,7 +1929,7 @@ document.getElementById('qa-meal').onclick=()=>{
 };
 document.getElementById('histai').onclick=()=>{
   const q=(document.getElementById('histsearch').value||'').trim();
-  goPane('fuel');
+  goPane('ai');
   const el=document.getElementById('aidesc');
   if(el){ if(q) el.value=q; el.scrollIntoView({behavior:'smooth',block:'center'}); el.focus(); }
 };
@@ -2072,7 +2124,7 @@ function aiProfile(){ return AIC.get('aiprofile')||PROFILE_DEFAULT; }
 // ---------- v10: backup reminder (Android has no auto-backup) ----------
 function backupLine(){
   const ts=+localStorage.getItem('recomp-lastbackup')||0;
-  if(!ts) return '<div style="margin-top:4px;color:var(--accent)">No full backup saved from this device yet. 💾 Save file → All days.</div>';
+  if(!ts) return '<div style="margin-top:4px;color:var(--accent)">No full backup saved from this device yet. Tap ＋ → Save backup → All days.</div>';
   const days=Math.floor((Date.now()-ts)/864e5);
   return '<div style="margin-top:4px;color:'+(days>=3?'var(--accent)':'var(--muted)')+'">Last full backup: '+(days===0?'today':days+' day'+(days===1?'':'s')+' ago')+'</div>';
 }
@@ -2107,15 +2159,18 @@ function flSystem(){
   const today=S.meals.map((m,i)=>i+': '+m.n+' ×'+m.q+' ('+m.k+' kcal P'+m.p+' C'+m.c+' F'+m.f+' each) '+m.slot+(m.t?' @'+m.t:'')+(m.pend?' PENDING':'')).join('\n')||'(nothing logged yet)';
   const libNames=new Set();
   const lib=allUnits().map(u=>{ libNames.add(u.n); return u.n+' | '+u.k+' '+u.p+' '+u.c+' '+u.f; }).join('\n');
-  const hist=allLoggedMeals().filter(h=>!libNames.has(h.n)).slice(0,90).map(h=>h.n+' | '+h.k+' '+h.p+' '+h.c+' '+h.f).join('\n');
-  return `You are the food-logging assistant inside Saied's 4MUL8R Day Logger. You turn what he says he ate into log entries through a short conversation; when he taps Log, the app writes them straight into his day. He talks by voice dictation — casual, approximate, and he often revises portions two or three times. Don't over-anchor on his first description.
+  const hist=allLoggedMeals().filter(h=>!libNames.has(h.n)).slice(0,60).map(h=>h.n+' | '+h.k+' '+h.p+' '+h.c+' '+h.f).join('\n');
+  return `You are the AI inside Saied's 4MUL8R Day Logger: his food logger and coach. You answer questions about his log (favorites, what he ate, macros on a past meal, trends), coach him briefly, and turn what he eats into log entries through a short conversation. When he taps Log, the app writes them straight into his day and shows his updated macros. He talks by voice dictation — casual, approximate, and he often revises portions two or three times. Don't over-anchor on his first description.
 
 REPLY FORMAT: exactly one JSON object. No prose outside it, no code fences.
-{"say":"...","questions":[{"q":"...","options":["...","..."]}],"lookup":"...","proposal":{"items":[],"remove":[],"assumptions":[]}}
+{"say":"...","questions":[{"q":"...","options":["...","..."]}],"lookup":"...","history":{"from":"YYYY-MM-DD","to":"YYYY-MM-DD","search":"..."},"status":true,"proposal":{"items":[],"remove":[],"assumptions":[]}}
 Only "say" is required.
-- say: 1-3 short sentences, markdown ok. For estimates, show the arithmetic briefly (e.g. "1 cup cooked rice 205 + 1 tsp oil 40 = 245"). Never state day totals or remaining macros; the app computes those.
+- say: 1-3 short sentences, markdown ok. For estimates, show the arithmetic briefly (e.g. "1 cup cooked rice 205 + 1 tsp oil 40 = 245"). Don't compute today's totals or what's left yourself; set "status":true and the app shows exact numbers under your message. For past days, quote the totals in RECENT DAYS or history results.
 - questions: at most 2 per turn, each with 2-4 short tappable options. Ask only when the answer moves the numbers meaningfully (about 40+ kcal or 4+ g fat) or you can't identify the food. Otherwise assume, and record it under assumptions.
 - lookup: a web search query. Use it for chain-restaurant items and branded packaged foods whose label you don't know confidently, instead of estimating. Send lookup with no proposal; the app runs the search and gives you the results.
+- history: request more of his log when RECENT DAYS doesn't cover the question (older dates, or searching for a food). from/to are inclusive, at most 62 days apart; search is an optional name filter. Send it alone; the app returns the matching entries and you continue.
+- status: true whenever he asks how his macros look, or after answering something where today's numbers matter.
+- Repeats ("having that again", "same as yesterday's lunch"): find the entries in RECENT DAYS or history, reuse their exact names and per-unit macros (src "library", est matching a leading "~"), and propose them with the new time and slot. Confirm which meal only if it's ambiguous.
 - proposal: once you have enough to log. items: {"n":"name incl. unit","k":kcal,"p":g,"c":g,"f":g,"q":qty,"slot":"breakfast|lunch|snack|dinner|night","t":"HH:MM","src":"library|label|restaurant|USDA|estimate","est":true|false}
   remove: indexes from TODAY'S LOG that this proposal replaces (for corrections to items already logged). The app deletes them when it adds the new items.
   assumptions: [{"a":"what you assumed","swing":"effect if wrong, e.g. ±60 kcal, ±6 g F"}]. Include every guess that matters.
@@ -2147,7 +2202,13 @@ LIBRARY (name | kcal P C F per unit):
 ${lib}
 
 HISTORY — logged before, not in library (name | kcal P C F per unit):
-${hist||'(none)'}`;
+${hist||'(none)'}
+
+FAVORITES — most-logged foods (times logged, last date):
+${flFavorites(25)}
+
+RECENT DAYS (the 7 days before ${S.date}):
+${flDays(isoAdd(S.date,-7),isoAdd(S.date,-1),'')}`;
 }
 function flClean(o){
   const P=o&&o.proposal; if(!P||!Array.isArray(P.items)||!P.items.length) return null;
@@ -2196,15 +2257,15 @@ function flRender(){
   document.getElementById('fldate').textContent=dl.lab+(dl.rel?' · '+dl.rel:'');
   document.getElementById('flhead').classList.toggle('away',!dl.today);
   const box=document.getElementById('flthread');
-  document.getElementById('flnew').hidden=!FL.thread.length;
-  if(!FL.thread.length&&!FL.busy){ box.style.display='none'; box.innerHTML=''; return; }
-  box.style.display='flex';
+  if(!FL.thread.length&&!FL.busy){ box.innerHTML='<div class="flempty">Ask about your log — favorites, what you had, macros on a past meal — or tell me what you ate and I\'ll log it.</div>'; return; }
   let lastA=-1; FL.thread.forEach((m,i)=>{ if(m.role==='assistant') lastA=i; });
   box.innerHTML=FL.thread.map((m,i)=>{
     if(m.role==='user'){
       if(m.sys==='lookup') return `<div class="flsys">🌐 looked up: ${flEsc(m.q)}</div>`;
+      if(m.sys==='history') return `<div class="flsys">🗂 checked your log: ${flEsc(m.q)}</div>`;
       return `<div class="flb u">${flEsc(m.shown||m.content)}</div>`;
     }
+    if(m.local) return m.stat?flStatHTML(m.stat,m.title):'';
     const o=flParse(m.content); let h='';
     if(o.say) h+=`<div class="flb a">${mdToHtml(flEsc(o.say))}</div>`;
     if(i===lastA&&!FL.busy&&Array.isArray(o.questions)&&!(FL.pending&&FL.pending.mi===i)){
@@ -2213,6 +2274,7 @@ function flRender(){
     }
     if(FL.pending&&FL.pending.mi===i) h+=flPropHTML(FL.pending);
     else if(m.logged) h+=`<div class="fldone">✓ Logged ${m.logged}</div>`;
+    if(m.stat) h+=flStatHTML(m.stat);
     return h;
   }).join('')+(FL.busy?'<div class="flb a" style="color:var(--muted)">…</div>':'');
   box.scrollTop=box.scrollHeight;
@@ -2220,17 +2282,27 @@ function flRender(){
 async function flTurn(web,depth){
   FL.busy=true; flRender();
   try{
-    let msgs=FL.thread.slice(-24).map(m=>({role:m.role,content:m.content}));
+    let msgs=FL.thread.filter(m=>!m.local).slice(-24).map(m=>({role:m.role,content:m.content}));
     while(msgs.length&&msgs[0].role!=='user') msgs.shift();
     const out=await orChat([{role:'system',content:flSystem()},...msgs], web?{plugins:[{id:'web',max_results:5}]}:null);
     const o=flParse(out);
     FL.thread.push({role:'assistant',content:out});
+    if(o.history&&typeof o.history==='object'&&!o.proposal&&depth<3){
+      const h=o.history, to=/^\d{4}-\d{2}-\d{2}$/.test(h.to||'')?h.to:isoAdd(S.date,-1);
+      let from=/^\d{4}-\d{2}-\d{2}$/.test(h.from||'')?h.from:isoAdd(to,-13); if(from<isoAdd(to,-62)) from=isoAdd(to,-62);
+      const srch=String(h.search||'').trim();
+      FL.thread.push({role:'user',sys:'history',q:from.slice(5)+' → '+to.slice(5)+(srch?' · "'+srch+'"':''),
+        content:'HISTORY RESULT '+from+' to '+to+(srch?' matching "'+srch+'"':'')+':\n'+flDays(from,to,srch)+'\n\n(Continue answering his last message with this.)'});
+      flPersist(); return await flTurn(false,depth+1);
+    }
     if(o.lookup&&!o.proposal&&depth<2&&AIC.get('flweb')!=='0'){
       FL.thread.push({role:'user',sys:'lookup',q:String(o.lookup),content:String(o.lookup)+' nutrition facts\n\n(Web results for that lookup are attached. Continue: use the published values, name the source in "say", then propose or ask.)'});
       flPersist(); return await flTurn(true,depth+1);
     }
     const P=flClean(o);
     if(P){ P.mi=FL.thread.length-1; FL.pending=P; }
+    if(o.status&&!P) FL.thread[FL.thread.length-1].stat=flStatSnap();
+    if(o.say&&typeof speak==='function') try{ speak(o.say); }catch(e){}
     FL.sel={};
   }catch(e){
     FL.thread.push({role:'assistant',content:JSON.stringify({say:e.message==='nokey'?'Add your OpenRouter key in ⚙️ Settings (top right).':'That call failed ('+e.message+'). Check signal, then send again.'}),err:true});
@@ -2239,6 +2311,7 @@ async function flTurn(web,depth){
 function flSend(text){
   if(FL.busy||!text) return;
   FL.thread=FL.thread.filter(m=>!m.err);
+  if(FL.thread.length&&!FL.thread.some(m=>m.role==='user')) FL.thread=[];
   FL.thread.push({role:'user',content:(FL.note?FL.note+'\n':'')+text,shown:text});
   FL.note=''; FL.sel={};
   flPersist(); flRender(); flTurn(false,0);
@@ -2255,7 +2328,9 @@ function flCommit(){
   if(lib){ saveMY(); renderUnits(); }
   const m=FL.thread[P.mi]; if(m) m.logged=P.items.length+' item'+(P.items.length===1?'':'s')+(P.remove.length?', replaced '+(P.remove.length-missed):'');
   FL.note='(I tapped Log. '+P.items.map(i=>i.n+' ×'+i.q).join('; ')+(P.remove.length?' — and the replaced entries were removed':'')+'. They are now in TODAY\'S LOG.)';
-  FL.pending=null; save(); renderAll(); flPersist(); flRender();
+  FL.pending=null; save(); renderAll();
+  FL.thread.push({role:'assistant',local:true,title:'Updated day',stat:flStatSnap(),content:''});
+  flPersist(); flRender();
   toast('✔ Logged '+P.items.length+' to '+flDateLabel(S.date).lab+(missed?' · '+missed+' to replace not found — delete it by hand':''));
 }
 document.getElementById('flthread').addEventListener('click',e=>{
@@ -2275,7 +2350,8 @@ document.getElementById('flthread').addEventListener('click',e=>{
   } else flRender();
 });
 document.getElementById('flnew').onclick=()=>{
-  if(FL.pending&&!confirm('Drop the unlogged proposal and start over?')) return;
+  if(!FL.thread.length) return;
+  if(FL.pending&&!confirm('Drop the unlogged proposal and start a new thread?')) return;
   FL.thread=[]; FL.pending=null; FL.note=''; FL.sel={}; flPersist(); flRender();
 };
 const flGo=()=>{ const ta=document.getElementById('aidesc'); const t=ta.value.trim();
@@ -2284,9 +2360,8 @@ const flGo=()=>{ const ta=document.getElementById('aidesc'); const t=ta.value.tr
 document.getElementById('aidescgo').onclick=flGo;
 document.getElementById('aidesc').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){ e.preventDefault(); flGo(); } });
 document.getElementById('gologger').onclick=()=>{
-  document.querySelector('[data-aimode="food"]').click();
-  document.getElementById('ailoggerCard').scrollIntoView({behavior:'smooth',block:'end'});
-  setTimeout(()=>document.getElementById('aidesc').focus({preventScroll:true}),350);
+  goPane('ai'); document.querySelector('[data-aimode="food"]').click();
+  setTimeout(()=>{ const ta=document.getElementById('aidesc'); ta.scrollIntoView({block:'center'}); ta.focus({preventScroll:true}); },120);
 };
 { const _ra=renderAll; renderAll=function(){ _ra(); flRender(); }; }
 
@@ -2294,7 +2369,7 @@ document.getElementById('gologger').onclick=()=>{
 if('serviceWorker' in navigator && location.protocol==='https:') navigator.serviceWorker.register('sw.js').catch(()=>{});
 
 // ---------- v10.1: settings ----------
-const APP_VERSION='v10.1';
+const APP_VERSION='v10.2';
 function renderThemeGrid(){
   const cur=localStorage.getItem('recomp-theme')||'auto';
   const card=(id,t,label)=>`<button class="themeopt ${cur===id?'on':''}" data-theme-id="${id}" aria-pressed="${cur===id}">
@@ -2376,6 +2451,101 @@ document.getElementById('appver').textContent=APP_VERSION;
 function renderSettings(){ renderThemeGrid(); renderTierTable(); renderPlateSettings(); renderDataStats(); }
 document.getElementById('gosettings').onclick=()=>{ goPane('settings'); renderSettings(); };
 { const _ra2=renderAll; renderAll=function(){ _ra2(); if(document.getElementById('settings').classList.contains('on')) renderSettings(); }; }
+
+// ---------- v10.2: history helpers for the AI ----------
+function flDays(from,to,search){
+  const q=(search||'').toLowerCase(), out=[];
+  for(let d=from; d<=to; d=isoAdd(d,1)){
+    let st=null; try{ st=JSON.parse(localStorage.getItem('recomp-log-'+d)); }catch(e){}
+    if(!st||!(st.meals||[]).length) continue;
+    const dn=new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'short'});
+    const ms=st.meals.filter(m=>!m.pend);
+    const hits=q?ms.filter(m=>m.n.toLowerCase().includes(q)):ms;
+    if(!hits.length) continue;
+    const t=ms.reduce((a,m)=>({k:a.k+m.k*m.q,p:a.p+m.p*m.q,c:a.c+m.c*m.q,f:a.f+m.f*m.q}),{k:0,p:0,c:0,f:0});
+    out.push(d+' '+dn+(q?'':' — day total '+Math.round(t.k)+' kcal P'+Math.round(t.p)+' C'+Math.round(t.c)+' F'+Math.round(t.f)+(st.weight?' · '+st.weight+' lb':'')+(st.session?' · trained '+st.session:'')));
+    SLOTS.forEach(sl=>{ const xs=hits.filter(m=>m.slot===sl); if(!xs.length) return;
+      xs.forEach(m=>out.push('  '+sl+(m.t?' '+m.t:'')+': '+m.n+' ×'+m.q+' ('+m.k+' kcal P'+m.p+' C'+m.c+' F'+m.f+' each)')); });
+    if(out.length>260){ out.push('…(truncated — narrow the range or search)'); break; }
+  }
+  return out.join('\n')||'(nothing logged in that range'+(q?' matching "'+search+'"':'')+')';
+}
+function flFavorites(n){
+  const cnt={};
+  Object.keys(localStorage).filter(k=>k.startsWith('recomp-log-')).forEach(k=>{ try{
+    (JSON.parse(localStorage.getItem(k)).meals||[]).forEach(m=>{ if(!m||!m.n||m.pend) return;
+      const key=m.n.replace(/^~/,'').toLowerCase().trim();
+      const c=cnt[key]||(cnt[key]={n:m.n,times:0,last:'',k:m.k,p:m.p,c:m.c,f:m.f});
+      c.times++; const d=k.slice(11); if(d>c.last){ c.last=d; Object.assign(c,{n:m.n,k:m.k,p:m.p,c:m.c,f:m.f}); } });
+  }catch(e){} });
+  return Object.values(cnt).sort((a,b)=>b.times-a.times).slice(0,n)
+    .map(x=>x.n+' — '+x.times+'×, last '+x.last+' | '+x.k+' '+x.p+' '+x.c+' '+x.f).join('\n')||'(none yet)';
+}
+function flStatSnap(){ const x=totals(), T=activeTargets(); return {k:x.k,p:x.p,c:x.c,f:x.f,T,d:S.date,items:S.meals.length}; }
+function flStatHTML(st,title){
+  const m=(lab,v,t,col)=>{ const pct=Math.min(100,Math.round(v/t*100)); const over=v>t;
+    return `<div><div class="lab"><span>${lab}</span><b style="${over?'color:var(--accent)':''}">${Math.round(v)}/${t}</b></div><div class="bar"><i style="width:${pct}%;background:${col}"></i></div></div>`; };
+  const left=st.T.k-st.k;
+  return `<div class="flstat"><div class="big">${title?'<b>'+flEsc(title)+'</b> · ':''}${Math.round(st.k)} kcal in · ${left>=0?Math.round(left)+' left':'<span style="color:var(--accent)">'+Math.round(-left)+' over</span>'}</div>
+    <div class="row">${m('kcal',st.k,st.T.k,'var(--accent)')}${m('P',st.p,st.T.p,'var(--p)')}${m('C',st.c,st.T.c,'var(--c)')}${m('F',st.f,st.T.f,'var(--f)')}</div></div>`;
+}
+document.getElementById('flquick').addEventListener('click',e=>{
+  const b=e.target.closest('[data-quick]'); if(!b||FL.busy) return;
+  const k=b.dataset.quick;
+  if(k==='status'){ FL.thread.push({role:'assistant',local:true,title:'Right now',stat:flStatSnap(),content:''}); flPersist(); flRender(); return; }
+  const msg={review:'Give me the coach read on today: 2-3 sentences. Protein verdict, training verdict, the one thing to do before bed or tomorrow.',
+    fav:'What are my most-logged foods? Give me the top 10 with their macros.',
+    lastdinner:'What did I have for dinner last night, and what were the macros?'}[k];
+  if(msg) flSend(msg);
+});
+
+// ---------- v10.2: collapsible date bar ----------
+function updateDateBar(){
+  if(!S) return;
+  const dl=flDateLabel(S.date), btn=document.getElementById('datetoggle');
+  document.getElementById('datelab').textContent=dl.lab;
+  document.getElementById('daterel').textContent=dl.rel||'';
+  btn.classList.toggle('away',!dl.today);
+}
+function setDatePanel(open){
+  document.getElementById('datepanel').hidden=!open;
+  document.getElementById('datetoggle').setAttribute('aria-expanded',String(open));
+}
+document.getElementById('datetoggle').onclick=()=>setDatePanel(document.getElementById('datepanel').hidden);
+document.getElementById('datepanel').addEventListener('click',e=>{ if(e.target.closest('[data-day]')) setTimeout(()=>setDatePanel(false),120); });
+document.getElementById('date').addEventListener('change',()=>setTimeout(()=>setDatePanel(false),120));
+document.getElementById('clearday').addEventListener('click',()=>setDatePanel(false));
+{ const _ra3=renderAll; renderAll=function(){ _ra3(); updateDateBar(); }; }
+
+// ---------- v10.2: quick-actions bubble ----------
+function setFab(open){
+  document.getElementById('fabmenu').hidden=!open; document.getElementById('fabscrim').hidden=!open;
+  document.getElementById('fabbtn').setAttribute('aria-expanded',String(open));
+  if(!open) document.getElementById('qa-weightrow').style.display='none';
+}
+document.getElementById('fabbtn').onclick=()=>setFab(document.getElementById('fabmenu').hidden);
+document.getElementById('fabscrim').onclick=()=>setFab(false);
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') setFab(false); });
+document.getElementById('fabmenu').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  if(b.id==='qa-weight'||e.target.closest('#qa-weightrow')&&b.id!=='qa-weightsave') return;
+  setTimeout(()=>setFab(false),0);
+});
+document.getElementById('qa-weightin').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('qa-weightsave').click(); });
+document.getElementById('fab-paste').onclick=()=>document.getElementById('pastejson').click();
+document.getElementById('fab-save').onclick=()=>document.getElementById('download').click();
+
+// ---------- v10.2: display size ----------
+function renderZoom(){
+  const z=Math.round((parseFloat(localStorage.getItem('recomp-zoom'))||1)*100);
+  document.getElementById('zoomrange').value=z; document.getElementById('zoomval').textContent=z+'%';
+}
+function setZoom(pct){ pct=Math.max(70,Math.min(130,Math.round(pct/5)*5)); localStorage.setItem('recomp-zoom',String(pct/100)); applyZoom(pct/100); renderZoom(); }
+document.getElementById('zoomrange').addEventListener('input',e=>setZoom(+e.target.value));
+document.getElementById('zoomdown').onclick=()=>setZoom(+document.getElementById('zoomrange').value-5);
+document.getElementById('zoomup').onclick=()=>setZoom(+document.getElementById('zoomrange').value+5);
+document.getElementById('zoomreset').onclick=()=>setZoom(100);
+renderZoom();
 
 const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset());
 document.getElementById('date').value=d.toISOString().slice(0,10);
